@@ -14,7 +14,7 @@ extern "C" {
 
 int color_count;
 
-int OpticalAvoider(char *img, int width, int height);
+int RunOpticalAvoider(char *img, int width, int height);
 
 #ifdef __cplusplus
 }
