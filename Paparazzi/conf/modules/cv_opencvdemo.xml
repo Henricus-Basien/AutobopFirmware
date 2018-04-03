@@ -18,7 +18,7 @@
   <makefile target="ap">
     <file name="cv_opencvdemo.c"/>
     <!--file name="opencv_example.cpp"/-->
-    <file name="OpticalAvoider.cpp"/>
+    <file name="OpticalAvoider/OpticalAvoider.cpp"/>
     <file name="opencv_image_functions.cpp"/>
     <flag name="CXXFLAGS" value="I$(PAPARAZZI_SRC)/sw/ext/opencv_bebop/install/include"/>
 
@@ -40,7 +40,7 @@
   <makefile target="nps">
     <file name="cv_opencvdemo.c"/>
     <!--file name="opencv_example.cpp"/-->
-    <file name="OpticalAvoider.cpp"/>
+    <file name="OpticalAvoider/OpticalAvoider.cpp"/>
     <file name="opencv_image_functions.cpp"/>
     <raw>
       nps.CXXFLAGS += $(shell pkg-config opencv --cflags)

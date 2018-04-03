@@ -26,7 +26,7 @@
 #include "modules/computer_vision/cv.h"
 #include "modules/computer_vision/cv_opencvdemo.h"
 //#include "modules/computer_vision/opencv_example.h"
-#include "modules/computer_vision/OpticalAvoider.h"
+#include "modules/computer_vision/OpticalAvoider/OpticalAvoider.h"
 //#include "OpticalAvoider.h"
 
 #include <stdio.h>
