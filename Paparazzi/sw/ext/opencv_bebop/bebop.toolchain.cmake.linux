@@ -1,0 +1,7 @@
+# Uses default linux arm-linux-gnueabi-gcc
+
+set(CMAKE_C_COMPILER   "/usr/bin/arm-linux-gnueabi-gcc"                   CACHE STRING "cc compiler")
+set(CMAKE_AR           "/usr/bin/arm-linux-gnueabi-ar"                    CACHE STRING "cc ar")
+set(CMAKE_CXX_COMPILER "/usr/bin/arm-linux-gnueabi-g++"                   CACHE STRING "c++ compiler")
+
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/bebop.toolchain.cmake.common REQUIRED)

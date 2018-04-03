@@ -1,0 +1,8 @@
+# Assumes you have parrot-tools crosscompiler
+
+
+set(CMAKE_C_COMPILER   "/opt/arm-2012.03/bin/arm-none-linux-gnueabi-gcc"                   CACHE STRING "cc compiler")
+set(CMAKE_AR           "/opt/arm-2012.03/bin/arm-none-linux-gnueabi-ar"                    CACHE STRING "cc ar")
+set(CMAKE_CXX_COMPILER "/opt/arm-2012.03/bin/arm-none-linux-gnueabi-g++"                   CACHE STRING "c++ compiler")
+
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/bebop.toolchain.cmake.common REQUIRED)

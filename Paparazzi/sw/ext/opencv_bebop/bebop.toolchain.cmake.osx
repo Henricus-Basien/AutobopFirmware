@@ -1,0 +1,8 @@
+# Assumes you have carlson-minot toolchain
+
+
+set(CMAKE_C_COMPILER   "/usr/local/carlson-minot/crosscompilers/bin/arm-none-linux-gnueabi-gcc"                   CACHE STRING "cc compiler")
+set(CMAKE_AR           "/usr/local/carlson-minot/crosscompilers/bin/arm-none-linux-gnueabi-ar"                    CACHE STRING "cc ar")
+set(CMAKE_CXX_COMPILER "/usr/local/carlson-minot/crosscompilers/bin/arm-none-linux-gnueabi-g++"                   CACHE STRING "c++ compiler")
+
+INCLUDE(${CMAKE_CURRENT_LIST_DIR}/bebop.toolchain.cmake.common REQUIRED)

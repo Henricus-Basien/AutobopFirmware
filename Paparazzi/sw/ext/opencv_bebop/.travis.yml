@@ -1,0 +1,20 @@
+language: c
+compiler:
+  - arm-linux-none-eabi-g++
+before_install:
+  - wget https://github.com/Parrot-Developers/toolchains/raw/master/parrot-tools-linuxgnutools-2012.03_1.0.0-1_i386.deb
+  - sudo dpkg -i parrot-tools-linuxgnutools-2012.03_1.0.0-1_i386.deb || echo "ignore fail and continue ..."
+  - sudo apt-get -f install
+install:
+  - sudo apt-get install g++-arm-linux-gnueabi
+addons:
+  apt:
+    sources:
+      - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
+    packages:
+      - cmake
+      - cmake-data
+script:
+  - make
+  - make cs
+

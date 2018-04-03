@@ -1,0 +1,7 @@
+mapfile
+*.hex
+*.bin
+*.pyc
+*.o
+*.elf
+src/luftboot

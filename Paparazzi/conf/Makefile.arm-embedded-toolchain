@@ -1,0 +1,44 @@
+# Hey Emacs, this is a -*- makefile -*-
+#
+# Copyright (C) 2012-2014 Felix Ruess <felix.ruess@gmail.com>
+
+
+#
+# This is the common Makefile for finding the arm compiler
+# for bare metal systems like on the ARM7TDMI, cortex M3/4
+
+PREFIX ?= arm-none-eabi
+
+#
+# if gcc can't be found in path, try the paparazzi toolchain in /opt
+#
+ifeq ($(shell which $(PREFIX)-gcc),)
+  ifdef ALLOW_OLD_ARM_MULTILIB_TOOLCHAIN
+    PPRZ_TOOLCHAIN=$(shell find -L /opt/paparazzi/arm-multilib -maxdepth 1 -type d -name arm-none-eabi 2>/dev/null | head -n 1)
+    ifneq ($(PPRZ_TOOLCHAIN),)
+      # set prefix with full path to /opt/paparazzi/arm-multilib toolchain
+      PREFIX=$(shell dirname $(PPRZ_TOOLCHAIN))/bin/arm-none-eabi
+      TOOLCHAIN_FOUND = 1
+    endif
+  endif
+else
+  TOOLCHAIN_FOUND = 1
+endif
+ifneq ($(TOOLCHAIN_FOUND),1)
+  ifneq ($(MAKECMDGOALS),clean)
+    $(error Error: arm-none-eabi-gcc cross-compiler not found! Recommended toolchain is https://launchpad.net/gcc-arm-embedded)
+  endif
+endif
+
+CC   = $(PREFIX)-gcc
+CXX  = $(PREFIX)-g++
+LD   = $(PREFIX)-g++
+AR   = $(PREFIX)-ar
+CP   = $(PREFIX)-objcopy
+DMP  = $(PREFIX)-objdump
+NM   = $(PREFIX)-nm
+SIZE = $(PREFIX)-size
+GDB  = $(PREFIX)-gdb
+
+# some general commands
+RM = rm

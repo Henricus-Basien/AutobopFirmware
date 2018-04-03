@@ -1,0 +1,249 @@
+# Copyright (C) 2015 Swift Navigation Inc.
+# Contact: Fergus Noble <fergus@swiftnav.com>
+#
+# This source is subject to the license found in the file 'LICENSE' which must
+# be be distributed together with this source. All other rights reserved.
+#
+# THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+# EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+
+package: swiftnav.sbp.flash
+description: |
+  Messages for reading/writing the device's onboard flash memory. Many
+  of these messages target specific flash memory peripherals used in
+  Swift Navigation devices: the STM32 flash and the M25Pxx FPGA
+  configuration flash.
+
+  These are in the implementation-defined range (0x0000-0x00FF), and
+  are intended for internal-use only.
+stable: False
+public: True
+include:
+  - types.yaml
+definitions:
+
+ - MSG_FLASH_PROGRAM:
+    id: 0x00E6
+    short_desc: Program flash addresses
+    desc: |
+      The flash program message programs a set of addresses of either
+      the STM or M25 flash. The device replies with either a
+      MSG_FLASH_DONE message containing the return code FLASH_OK (0)
+      on success, or FLASH_INVALID_LEN (2) if the maximum write size
+      is exceeded. Note that the sector-containing addresses must be
+      erased before addresses can be programmed.
+    fields:
+      - target:
+          type: u8
+          desc: Target flags
+          fields:
+            - 1-7:
+                desc: Reserved
+            - 0:
+                desc: Flash target to read
+                values:
+                  - 0: FLASH_STM
+                  - 1: FLASH_M25
+      - addr_start:
+          type: array
+          fill: u8
+          size: 3
+          units: bytes
+          desc: Starting address offset to program
+      - addr_len:
+          type: u8
+          units: bytes
+          desc: |
+            Length of set of addresses to program, counting up from
+            starting address
+      - data:
+          type: array
+          fill: u8
+          size_fn: addr_len
+          desc: Data to program addresses with, with length N=addr_len
+
+ - MSG_FLASH_DONE:
+    id: 0x00E0
+    short_desc: Flash response message (host <= device).
+    desc: |
+      This message defines success or failure codes for a variety of
+      flash memory requests from the host to the device. Flash read
+      and write messages, such as MSG_FLASH_READ_REQ, or
+      MSG_FLASH_PROGRAM, may return this message on failure.
+    fields:
+      - response:
+          type: u8
+          desc: Response flags
+          fields:
+            - 3-7:
+                desc: Reserved
+            - 0-2:
+                desc: Response code
+                values:
+                  - 0: FLASH_OK
+                  - 1: FLASH_INVALID_FLASH
+                  - 2: FLASH_INVALID_LEN
+                  - 3: FLASH_INVALID_ADDR
+                  - 4: FLASH_INVALID_RANGE
+                  - 5: FLASH_INVALID_SECTOR
+
+ - MSG_FLASH_READ_REQ:
+    id: 0x00E7
+    short_desc: Read STM or M25 flash address request (host => device).
+    desc: |
+      The flash read message reads a set of addresses of either the
+      STM or M25 onboard flash. The device replies with a
+      MSG_FLASH_READ_RESP message containing either the read data on
+      success or a MSG_FLASH_DONE message containing the return code
+      FLASH_INVALID_LEN (2) if the maximum read size is exceeded or
+      FLASH_INVALID_ADDR (3) if the address is outside of the allowed
+      range.
+    fields:
+      - target:
+          type: u8
+          desc: Target flags
+          fields:
+            - 1-7:
+                desc: Reserved
+            - 0:
+                desc: Flash target to read
+                values:
+                  - 0: FLASH_STM
+                  - 1: FLASH_M25
+      - addr_start:
+          type: array
+          fill: u8
+          size: 3
+          units: bytes
+          desc: Starting address offset to read from
+      - addr_len:
+          type: u8
+          units: bytes
+          desc: |
+            Length of set of addresses to read, counting up from
+            starting address
+
+ - MSG_FLASH_READ_RESP:
+    id: 0x00E1
+    short_desc: Read STM or M25 flash address response (host <= device).
+    desc: |
+      The flash read message reads a set of addresses of either the
+      STM or M25 onboard flash. The device replies with a
+      MSG_FLASH_READ_RESP message containing either the read data on
+      success or a MSG_FLASH_DONE message containing the return code
+      FLASH_INVALID_LEN (2) if the maximum read size is exceeded or
+      FLASH_INVALID_ADDR (3) if the address is outside of the allowed
+      range.
+    fields:
+      - target:
+          type: u8
+          desc: Target flags
+          fields:
+            - 1-7:
+                desc: Reserved
+            - 0:
+                desc: Flash target to read
+                values:
+                  - 0: FLASH_STM
+                  - 1: FLASH_M25
+      - addr_start:
+          type: array
+          fill: u8
+          size: 3
+          units: bytes
+          desc: Starting address offset to read from
+      - addr_len:
+          type: u8
+          units: bytes
+          desc: |
+            Length of set of addresses to read, counting up from
+            starting address
+
+ - MSG_FLASH_ERASE:
+    id: 0x00E2
+    short_desc: Erase sector of device flash memory (host => device).
+    desc: |
+      The flash erase message from the host erases a sector of either
+      the STM or M25 onboard flash memory. The device will reply with a
+      MSG_FLASH_DONE message containing the return code - FLASH_OK (0)
+      on success or FLASH_INVALID_FLASH (1) if the flash specified is
+      invalid.
+    fields:
+      - target:
+          type: u8
+          desc: Target flags
+          fields:
+            - 1-7:
+                desc: Reserved
+            - 0:
+                desc: Flash target to read
+                values:
+                  - 0: FLASH_STM
+                  - 1: FLASH_M25
+      - sector_num:
+          type: u32
+          desc: |
+            Flash sector number to erase (0-11 for the STM, 0-15 for
+            the M25)
+
+ - MSG_STM_FLASH_LOCK_SECTOR:
+    id: 0x00E3
+    short_desc: Lock sector of STM flash memory (host => device)
+    desc: |
+      The flash lock message locks a sector of the STM flash
+      memory. The device replies with a MSG_FLASH_DONE message.
+    fields:
+      - sector:
+          type: u32
+          desc: Flash sector number to lock
+
+ - MSG_STM_FLASH_UNLOCK_SECTOR:
+    id: 0x00E4
+    short_desc: Unlock sector of STM flash memory (host => device)
+    desc: |
+      The flash unlock message unlocks a sector of the STM flash
+      memory. The device replies with a MSG_FLASH_DONE message.
+    fields:
+      - sector:
+          type: u32
+          desc: Flash sector number to unlock
+
+ - MSG_STM_UNIQUE_ID_REQ:
+    id: 0x00E8
+    short_desc: |
+      Read device's hardcoded unique ID request (host => device)
+    desc: |
+      This message reads the device's hardcoded unique ID. The host
+      requests the ID by sending a MSG_STM_UNIQUE_ID_REQ. The device
+      responds with a MSG_STM_UNIQUE_ID_RESP with the 12-byte unique
+      ID in the payload.
+
+ - MSG_STM_UNIQUE_ID_RESP:
+    id: 0x00E5
+    short_desc: |
+      Read device's hardcoded unique ID response (host <= device)
+    desc: |
+      This message reads the device's hardcoded unique ID. The host
+      requests the ID by sending a MSG_STM_UNIQUE_ID_REQ. The device
+      responds with a MSG_STM_UNIQUE_ID_RESP with the 12-byte unique
+      ID in the payload..
+    fields:
+      - stm_id:
+          type: array
+          fill: u8
+          size: 12
+          desc: Device unique ID
+
+ - MSG_M25_FLASH_WRITE_STATUS:
+    id: 0x00F3
+    short_desc: Write M25 flash status register (host => device)
+    desc: |
+      The flash status message writes to the 8-bit M25 flash status
+      register. The device replies with a MSG_FLASH_DONE message.
+    fields:
+      - status:
+          type: array
+          size: 1
+          fill: u8
+          desc: Byte to write to the M25 flash status register

@@ -1,0 +1,161 @@
+# Copyright (C) 2015 Swift Navigation Inc.
+# Contact: Fergus Noble <fergus@swiftnav.com>
+#
+# This source is subject to the license found in the file 'LICENSE' which must
+# be be distributed together with this source. All other rights reserved.
+#
+# THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+# EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+
+package: swiftnav.sbp.file_io
+description: |
+  Messages for using device's onboard flash filesystem
+  functionality. This allows data to be stored persistently in the
+  device's program flash with wear-levelling using a simple filesystem
+  interface. The file system interface (CFS) defines an abstract API
+  for reading directories and for reading and writing files.
+
+  These are in the implementation-defined range (0x0000-0x00FF), and
+  intended for internal-use only. Note that some of these messages
+  share the same message type ID for both the host request and the
+  device response.
+stable: False
+public: True
+include:
+  - types.yaml
+definitions:
+
+ - MSG_FILEIO_READ_REQ:
+    id: 0x00A8
+    short_desc: Read file from the file system (host => device)
+    desc: |
+      The file read message reads a certain length (up to 255 bytes)
+      from a given offset into a file, and returns the data in a
+      MSG_FILEIO_READ_RESP message where the message length field
+      indicates how many bytes were succesfully read.The sequence
+      number in the request will be returned in the response.
+    fields:
+      - sequence:
+          type: u32
+          desc: Read sequence number
+      - offset:
+          type: u32
+          units: bytes
+          desc: File offset
+      - chunk_size:
+          type: u8
+          units: bytes
+          desc: Chunk size to read
+      - filename:
+          type: string
+          desc: Name of the file to read from
+
+ - MSG_FILEIO_READ_RESP:
+    id: 0x00A3
+    short_desc: File read from the file system (host <= device)
+    desc: |
+      The file read message reads a certain length (up to 255 bytes)
+      from a given offset into a file, and returns the data in a
+      message where the message length field indicates how many bytes
+      were succesfully read. The sequence number in the response is
+      preserved from the request.
+    fields:
+      - sequence:
+          type: u32
+          desc: Read sequence number
+      - contents:
+          type: array
+          fill: u8
+          desc: Contents of read file
+
+ - MSG_FILEIO_READ_DIR_REQ:
+    id: 0x00A9
+    short_desc: List files in a directory (host => device)
+    desc: |
+      The read directory message lists the files in a directory on the
+      device's onboard flash file system.  The offset parameter can be
+      used to skip the first n elements of the file list. Returns a
+      MSG_FILEIO_READ_DIR_RESP message containing the directory
+      listings as a NULL delimited list. The listing is chunked over
+      multiple SBP packets. The sequence number in the request will be
+      returned in the response.
+    fields:
+      - sequence:
+          type: u32
+          desc: Read sequence number
+      - offset:
+          type: u32
+          desc: |
+            The offset to skip the first n elements of the file list
+      - dirname:
+          type: string
+          desc: Name of the directory to list
+
+ - MSG_FILEIO_READ_DIR_RESP:
+    id: 0x00AA
+    short_desc: Files listed in a directory (host <= device)
+    desc: |
+      The read directory message lists the files in a directory on the
+      device's onboard flash file system. Message contains the directory
+      listings as a NULL delimited list. The listing is chunked over
+      multiple SBP packets and the end of the list is identified by an
+      entry containing just the character 0xFF. The sequence number in
+      the response is preserved from the request.
+    fields:
+      - sequence:
+          type: u32
+          desc: Read sequence number
+      - contents:
+          type: array
+          fill: u8
+          desc: Contents of read directory
+
+ - MSG_FILEIO_REMOVE:
+    id: 0x00AC
+    short_desc: Delete a file from the file system (host => device)
+    desc: |
+      The file remove message deletes a file from the file system.
+    fields:
+      - filename:
+          type: string
+          desc: Name of the file to delete
+
+ - MSG_FILEIO_WRITE_REQ:
+    id: 0x00AD
+    short_desc: Write to file (host => device)
+    desc: |
+      The file write message writes a certain length (up to 255 bytes)
+      of data to a file at a given offset. Returns a copy of the
+      original MSG_FILEIO_WRITE_RESP message to check integrity of
+      the write. The sequence number in the request will be returned
+      in the response.
+    fields:
+      - sequence:
+          type: u32
+          desc: Write sequence number
+      - offset:
+          type: u32
+          units: bytes
+          desc: Offset into the file at which to start writing in bytes
+      - filename:
+          type: string
+          desc: Name of the file to write to
+      - data:
+          type: array
+          fill: u8
+          desc: Variable-length array of data to write
+
+ - MSG_FILEIO_WRITE_RESP:
+    id: 0x00AB
+    short_desc: File written to (host <= device)
+    desc: |
+      The file write message writes a certain length (up to 255 bytes)
+      of data to a file at a given offset. The message is a copy of the
+      original MSG_FILEIO_WRITE_REQ message to check integrity of the
+      write. The sequence number in the response is preserved from the
+      request.
+    fields:
+      - sequence:
+          type: u32
+          desc: Write sequence number

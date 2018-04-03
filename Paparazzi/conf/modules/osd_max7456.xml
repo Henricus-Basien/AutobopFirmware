@@ -1,0 +1,31 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="max7456" dir="display">
+  <doc>
+    <description>MAX7456 driver (SPI)</description>
+    <configure name="MAX7456_SPI_DEV" value="spiX" description="select spi peripheral to use (default spi2)"/>
+    <configure name="MAX7456_SLAVE_IDX" value="SPI_SLAVE0" description="SPI slave select index"/>
+  </doc>
+  <header>
+    <file name="max7456.h"/>
+  </header>
+  <init fun="max7456_init()"/>
+  <periodic fun="max7456_periodic()" freq="20" autorun="TRUE"/>
+  <event fun="max7456_event()"/>
+  <makefile target="ap">
+    <configure name="MAX7456_SPI_DEV" default="spi2" case="upper|lower"/>
+    <configure name="MAX7456_SLAVE_IDX" default="spi_slave2" case="upper|lower"/>
+    <raw>
+      include $(CFG_SHARED)/spi_master.makefile
+    </raw>
+    <define name="USE_$(MAX7456_SPI_DEV_UPPER)" />
+    <define name="USE_$(MAX7456_SLAVE_IDX_UPPER)" />
+    <define name="MAX7456_SPI_DEV" value="$(MAX7456_SPI_DEV_LOWER)" />
+    <define name="MAX7456_SLAVE_IDX" value="$(MAX7456_SLAVE_IDX_UPPER)" />
+    <file name="max7456.c" />
+    <define name="USE_PAL_FOR_OSD_VIDEO" value="1" />
+    <define name="OSD_USE_EXTERNAL_SPRINTF" value="0" />
+  </makefile>
+</module>
+
+

@@ -1,0 +1,52 @@
+From a65efbfd539e044d735f446c7fab9171c2180804 Mon Sep 17 00:00:00 2001
+From: wv-tud <w.vlenterie@student.tudelft.nl>
+Date: Sat, 11 Mar 2017 12:39:54 +0100
+Subject: [PATCH] Fixed compiler crashes/warnings for parrot toolchain 2012.03
+
+---
+ modules/imgproc/src/morph.cpp                              | 4 +++-
+ modules/photo/src/fast_nlmeans_multi_denoising_invoker.hpp | 4 ++--
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/modules/imgproc/src/morph.cpp b/modules/imgproc/src/morph.cpp
+index 52c3411..74b15eb 100644
+--- a/modules/imgproc/src/morph.cpp
++++ b/modules/imgproc/src/morph.cpp
+@@ -637,8 +637,9 @@ template<class Op, class VecOp> struct MorphRowFilter : public BaseRowFilter
+         anchor = _anchor;
+     }
+ 
+-    void operator()(const uchar* src, uchar* dst, int width, int cn)
++    void operator()(__attribute__((unused)) const uchar* src, __attribute__((unused)) uchar* dst, __attribute__((unused)) int width, __attribute__((unused)) int cn)
+     {
++    /*
+         int i, j, k, _ksize = ksize*cn;
+         const T* S = (const T*)src;
+         Op op;
+@@ -675,6 +676,7 @@ template<class Op, class VecOp> struct MorphRowFilter : public BaseRowFilter
+                 D[i] = m;
+             }
+         }
++    */
+     }
+ 
+     VecOp vecOp;
+diff --git a/modules/photo/src/fast_nlmeans_multi_denoising_invoker.hpp b/modules/photo/src/fast_nlmeans_multi_denoising_invoker.hpp
+index 3f13f40..b90bda1 100644
+--- a/modules/photo/src/fast_nlmeans_multi_denoising_invoker.hpp
++++ b/modules/photo/src/fast_nlmeans_multi_denoising_invoker.hpp
+@@ -244,9 +244,9 @@ void FastNlMeansMultiDenoisingInvoker<T, IT, UIT, D, WT>::operator() (const Rang
+ 
+             // calc weights
+             IT estimation[pixelInfo<T>::channels], weights_sum[pixelInfo<WT>::channels];
+-            for (size_t channel_num = 0; channel_num < pixelInfo<T>::channels; channel_num++)
++            for (size_t channel_num = 0; channel_num < (size_t) pixelInfo<T>::channels; channel_num++)
+                 estimation[channel_num] = 0;
+-            for (size_t channel_num = 0; channel_num < pixelInfo<WT>::channels; channel_num++)
++            for (size_t channel_num = 0; channel_num < (size_t) pixelInfo<WT>::channels; channel_num++)
+                 weights_sum[channel_num] = 0;
+ 
+             for (int d = 0; d < temporal_window_size_; d++)
+-- 
+2.7.4
+

@@ -1,0 +1,49 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="cv_opencvdemo" dir="computer_vision">
+  <doc>
+    <description>This example shows how opencv can be used on (for example) the Bebop drone.
+    Important to know is that sw/ext/opencv_bebop must be downloaded, and made.
+    After this is done the folder sw/ext/opencv_bebop/install has a opencv.xml file.
+    The LDFLAGS in this file should be the same as in this conf file.
+    </description>
+
+    <define name="OPENCVDEMO_CAMERA" value="front_camera|bottom_camera" description="Video device to use"/>
+    <define name="OPENCVDEMO_FPS" value="0" description="The (maximum) frequency to run the calculations at. If zero, it will max out at the camera frame rate"/>
+  </doc>
+  <header>
+    <file name="cv_opencvdemo.h"/>
+  </header>
+  <init fun="opencvdemo_init()"/>
+  <makefile target="ap">
+    <file name="cv_opencvdemo.c"/>
+    <file name="opencv_example.cpp"/>
+    <file name="opencv_image_functions.cpp"/>
+    <flag name="CXXFLAGS" value="I$(PAPARAZZI_SRC)/sw/ext/opencv_bebop/install/include"/>
+
+	<flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install/lib" />
+	<flag name="LDFLAGS" value="lopencv_world" />
+	<flag name="LDFLAGS" value="L$(PAPARAZZI_HOME)/sw/ext/opencv_bebop/install/share/OpenCV/3rdparty/lib" />
+	<flag name="LDFLAGS" value="ltegra_hal" />
+	<flag name="LDFLAGS" value="lzlib" />
+	<flag name="LDFLAGS" value="llibjpeg" />
+	<flag name="LDFLAGS" value="llibpng" />
+	<flag name="LDFLAGS" value="llibtiff" />
+	<flag name="LDFLAGS" value="lstdc++" />
+	<flag name="LDFLAGS" value="ldl" />
+	<flag name="LDFLAGS" value="lm" />
+	<flag name="LDFLAGS" value="lpthread" />
+	<flag name="LDFLAGS" value="lrt" />
+
+  </makefile>
+  <makefile target="nps">
+    <file name="cv_opencvdemo.c"/>
+    <file name="OpticalAvoider.cpp"/>
+    <!--file name="opencv_example.cpp"/-->
+    <file name="opencv_image_functions.cpp"/>
+    <raw>
+      nps.CXXFLAGS += $(shell pkg-config opencv --cflags)
+      nps.LDFLAGS  += -lopencv_imgproc -lopencv_highgui -lopencv_core
+    </raw>
+  </makefile>
+</module>
