@@ -19,6 +19,7 @@
     <file name="cv_opencvdemo.c"/>
     <!--file name="opencv_example.cpp"/-->
     <file name="OpticalAvoider/OpticalAvoider.cpp"/>
+    <!--file name="OpticalAvoider/Profiler.cpp"/-->
     <file name="opencv_image_functions.cpp"/>
     <flag name="CXXFLAGS" value="I$(PAPARAZZI_SRC)/sw/ext/opencv_bebop/install/include"/>
 
@@ -41,10 +42,11 @@
     <file name="cv_opencvdemo.c"/>
     <!--file name="opencv_example.cpp"/-->
     <file name="OpticalAvoider/OpticalAvoider.cpp"/>
+    <!--file name="OpticalAvoider/Profiler.cpp"/-->
     <file name="opencv_image_functions.cpp"/>
     <raw>
       nps.CXXFLAGS += $(shell pkg-config opencv --cflags)
-      nps.LDFLAGS  += -lopencv_imgproc -lopencv_highgui -lopencv_core
+      nps.LDFLAGS  += -lopencv_imgproc -lopencv_highgui -lopencv_core -lopencv_video
     </raw>
   </makefile>
 </module>
