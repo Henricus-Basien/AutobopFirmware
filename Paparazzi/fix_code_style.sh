@@ -11,7 +11,6 @@ if [ $# -eq 0 ]; then
 fi
 
 ASTYLE_VERSION=`astyle --version 2>&1| awk '{print $4}'`
-ASTYLE_VERSION=${ASTYLE_VERSION:0:4}
 echo "Using astyle version $ASTYLE_VERSION"
 
 set -f

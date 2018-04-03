@@ -135,10 +135,7 @@ let ac_id_of_name = fun ac_name ->
     ExtXml.int_attrib aircraft "ac_id"
   with
       Not_found ->
-        if ac_name = "GCS" then
-          0 (* return GCS id *)
-        else
-          failwith (sprintf "A/C '%s' not found" ac_name)
+        failwith (sprintf "A/C '%s' not found" ac_name)
 
 (** Fill the index_of_settings table from var/AC/settings.xml *)
 let hash_index_of_settings = fun ac_name ->
@@ -605,11 +602,8 @@ let () =
 
   let ac_id = ac_id_of_name !ac_name in
 
-  if ac_id > 0 then begin
-    (* build hash only for real AC, not for GCS *)
-    hash_index_of_settings !ac_name;
-    hash_index_of_blocks !ac_name;
-  end;
+  hash_index_of_settings !ac_name;
+  hash_index_of_blocks !ac_name;
 
   Printf.printf "Joystick ID (option -id): %u\n" !joystick_id;
   Printf.printf "Joystick SDL device index (option -d): %u\n" !device_index;

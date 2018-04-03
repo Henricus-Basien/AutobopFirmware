@@ -30,9 +30,8 @@ import argparse
 from ivy.std_api import *
 
 PPRZ_HOME = os.getenv("PAPARAZZI_HOME")
-PPRZ_SRC = os.getenv("PAPARAZZI_SRC")
-sys.path.append(PPRZ_SRC + "/sw/lib/python")
-sys.path.append(PPRZ_HOME + "/var/lib/python")
+sys.path.append(PPRZ_HOME + "/sw/lib/python")
+sys.path.append(PPRZ_HOME + "/sw/ext/pprzlink/lib/v1.0/python")
 
 import pprz_env
 from pprzlink import messages_xml_map

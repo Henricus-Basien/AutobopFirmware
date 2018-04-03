@@ -31,7 +31,6 @@
 #include "generated/airframe.h"
 
 extern void stabilization_init(void);
-extern void stabilization_filter_commands(void);
 
 /** Stabilization commands.
  *  Contains the resulting stabilization commands,

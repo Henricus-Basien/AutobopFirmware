@@ -13,11 +13,6 @@ AggieAir Atomic Tangerine
       </module>
       <configure name="HAS_LUFTBOOT" value="1"/>
       <configure name="FLASH_MODE" value="DFU"/>
-      <module name="telemetry"   type="transparent_gec">
-        <configure name="MODEM_PORT"        value="UART3"/>
-        <configure name="MODEM_BAUD"        value="B57600"/>
-        <define name="GEC_STATUS_LED" value="5"/>
-      </module>
     </target>
 
     <!-- NOTE: if you want to use extra_dl module for HITL
@@ -30,7 +25,6 @@ AggieAir Atomic Tangerine
     <target name="nps" board="pc">
       <module name="fdm" type="jsbsim"/>
       <module name="radio_control" type="spektrum"/>
-      <module name="telemetry"   type="transparent_gec"/>
     </target>
 
     <target name="hitl" board="pc">
@@ -40,11 +34,16 @@ AggieAir Atomic Tangerine
       <configure name="INS_BAUD" value="B921600"/>
       <configure name="AP_DEV" value="/dev/ttyUSB2"/>
       <configure name="AP_BAUD" value="B921600"/>
-      <module name="telemetry"   type="transparent"/>
     </target>
 
     <module name="control"/>
     <module name="navigation"/>
+
+    <module name="telemetry"   type="transparent_gec">
+      <configure name="MODEM_PORT"        value="UART3"/>
+      <configure name="MODEM_BAUD"        value="B57600"/>
+      <define name="GEC_STATUS_LED" value="5"/>
+    </module>
 
     <module name="ins"       type="vectornav">
       <configure name="VN_PORT" value="UART2"/>
@@ -62,7 +61,6 @@ AggieAir Atomic Tangerine
     <module name="nav" type="survey_poly_osam"/>
     <module name="nav" type="launcher"/>
     <module name="nav" type="skid_landing"/>
-
     <module name="sys_mon"/>
     <module name="copilot"/>
     <module name="extra_dl">
@@ -237,9 +235,9 @@ AggieAir Atomic Tangerine
     <!-- ORIGINAL GAIN     -->
     <define name="PITCH_DGAIN" value="1.5"/>
 
-    <!-- SIMULATOR GAIN-->
-    <!--define name="PITCH_DGAIN" value="151.5"/-->
-     
+    <!-- SIMULATOR GAIN
+    <define name="PITCH_DGAIN" value="151.5"/>
+     -->
     <define name="ELEVATOR_OF_ROLL" value="1250"/>
     <define name="ROLL_ATTITUDE_GAIN" value="9000"/>
     <define name="ROLL_RATE_GAIN" value="1600"/>

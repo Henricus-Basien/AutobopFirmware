@@ -421,7 +421,7 @@ class NatNetClient:
                 offset += self.__unpackSkeletonDescription( data[offset:] )
             
     def __dataThreadFunction( self, sock ):
-        sock.settimeout(0.01)
+        sock.settimeout(0.5)
         while self.running:
             # Block for input
             try:
