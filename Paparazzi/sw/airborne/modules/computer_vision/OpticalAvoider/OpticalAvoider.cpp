@@ -29,6 +29,13 @@
 #define UseAbsoluteMax
 #define CropImage
 
+#define ApplyConvolution
+#ifdef ApplyConvolution
+    #define ConvFilter sqrBoxFilter // BoxFilter
+#endif
+
+//#define USEOFGF
+
 //****************************************************************************************
 // Imports
 //****************************************************************************************
@@ -82,6 +89,10 @@ using namespace cv;
     #include "Profiler.h"
 #endif
 
+#ifdef USEOFGF
+    #include "VIDEO/VIDEO.h"
+#endif
+
 //****************************************************************************************
 // Settings
 //****************************************************************************************
@@ -117,6 +128,7 @@ int    flags      = 0; // cv::OPTFLOW_USE_INITIAL_FLOW
 #endif
 
 int NrColumns = 9;//5;
+int ConvolutionColumns = 3;
 float K = 1.0; // [s]
 
 //****************************************************************************************
@@ -143,6 +155,11 @@ cv::Size org_size;
 cv::Mat diff;
 #ifdef FINDMAX
     double MaxMean = 0;
+#endif
+
+#ifdef USEOFGF
+    VIDEO movie("video");
+    vector<Point2f> FV;
 #endif
 
 //--- Optimal Directions ---
@@ -231,6 +248,24 @@ Mat Detector(Mat frame){
         #endif
         cv::calcOpticalFlowFarneback(frame_old_g, frame_new_g, flow, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags); // returns matrix with flow in x and y
         
+        #ifdef USEOFGF
+            printf("Load Frame");
+            movie.loadFrame(frame_new);
+
+            printf("Find Features");
+            movie.findFeatures();
+
+            if (frameNr>1){
+                printf("Calc OptFlow");
+                movie.calcOptFlow();
+
+                printf("Get FLow Vectors");
+                FV = movie.getFlowVectors();
+
+                cout << "FV: " << endl << FV << endl;
+            }
+        #endif
+
         //-------------------------------------------
         // Get Magnitude
         //-------------------------------------------
@@ -367,6 +402,12 @@ Mat Detector(Mat frame){
         Mat Columns;
         cv::resize(diff,Columns, ColumnSize);
 
+        #ifdef ApplyConvolution
+            Mat ConvolvedFlow;
+            ConvFilter(Columns, ConvolvedFlow, -1, cv::Size(1,ConvolutionColumns), Point(-1, -1), true, BORDER_DEFAULT );
+            Columns = ConvolvedFlow;
+        #endif
+
         //-------------------------------------------
         // Get Direction
         //-------------------------------------------
@@ -376,6 +417,10 @@ Mat Detector(Mat frame){
         cv::minMaxIdx(Columns,&minVal,&maxVal,&minIdx,&maxIdx);
 
         int Idx = minIdx;
+        #ifdef PRINTDEBUG
+            cout << "Column index: "<< Idx << endl;
+        #endif
+
         OptPer[0] = 0.0;
         OptPer[1] = (float(Idx)+0.5)/float(NrColumns)-0.5;
 
@@ -505,3 +550,4 @@ int RunOpticalAvoider(char *raw_img_data, int width, int height){
 
     return 0;
 }
+
