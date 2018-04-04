@@ -17,6 +17,8 @@ extern "C" {
 extern float MaxAngle;
 extern float RefAng[2];
 
+extern unsigned long dt;
+
 //+++++++++++++++++++++++++++++++++++++++++++
 // Global Functions
 //+++++++++++++++++++++++++++++++++++++++++++

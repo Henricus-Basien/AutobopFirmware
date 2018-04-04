@@ -63,7 +63,6 @@ using namespace std;
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 using namespace cv;
-#include "opencv_image_functions.h"
 
 //...........................................
 // Tracking
@@ -81,6 +80,13 @@ using namespace cv;
 //-------------------------------------------
 
 //#include <Eigen/Core>
+
+//-------------------------------------------
+// Paparazzi (OpenCV)
+//-------------------------------------------
+
+//#include "opencv_image_functions.h" // Use with (nps)
+#include "../opencv_image_functions.h" // Use with (ap)
 
 //+++++++++++++++++++++++++++++++++++++++++++
 // Internal
@@ -148,6 +154,7 @@ cv::Size org_size;
 
 //--- Time Keeping ---
 #ifdef TRACKTIME
+    unsigned long dt = 0;
     unsigned long t_old = 0;
 #endif
 
@@ -225,7 +232,7 @@ Mat Detector(Mat frame){
     
     #ifdef TRACKTIME
         unsigned long t = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        unsigned long dt = t-t_old;
+        dt = t-t_old;
         t_old = t;
         float freq = 1000./float(dt);
         //t = time(NULL);

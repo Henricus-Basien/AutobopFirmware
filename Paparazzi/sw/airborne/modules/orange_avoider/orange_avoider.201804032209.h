@@ -7,7 +7,7 @@
 /**
  * @file "modules/orange_avoider/orange_avoider.h"
  * @author Roland Meertens
- * Example on how to use the urs detected to avoid orange pole in the cyberzoo
+ * Example on how to use the colours detected to avoid orange pole in the cyberzoo
  */
 
 #ifndef ORANGE_AVOIDER_H
@@ -26,16 +26,8 @@ extern uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters);
 extern uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor);
 extern uint8_t increase_nav_heading(int32_t *heading, float incrementDegrees);
 extern uint8_t chooseRandomIncrementAvoidance(void);
-extern uint8_t moveWaypointToAvoid(uint8_t waypoint, float distanceMeters, float *angleDiversion);
-extern float compute_dHDG_obst();
+extern uint8_t moveWaypointToAvoid(uint8_t waypoint, float distanceMeters, uint32_t angleDiversion);
 
-extern float signOfFloat(float variable);
-
-extern  void capHeadingChange(float *dHDG);
-extern float compute_dHDG_wall(float *posx, float *posy);
-extern void initiate_bigEvasiveTurn(float headingOffset);
-extern bool doingBigEvasiveTurnCheck(void);
-
-extern uint8_t doingBigEvasiveTurn;
+extern float casper_compt_hdg_chg(void);
 #endif
 

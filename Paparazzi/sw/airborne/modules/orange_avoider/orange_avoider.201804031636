@@ -1,0 +1,249 @@
+/*
+ * Copyright (C) Roland Meertens
+ *
+ * This file is part of paparazzi
+ *
+ */
+/**
+ * @file "modules/orange_avoider/orange_avoider.c"
+ * @author Roland Meertens
+ * Example on how to use the colours detected to avoid orange pole in the cyberzoo
+ */
+
+#include "modules/orange_avoider/orange_avoider.h"
+#include "modules/computer_vision/colorfilter.h"
+#include "firmwares/rotorcraft/navigation.h"
+#include "generated/flight_plan.h"
+#include "generated/airframe.h"
+#include "state.h"
+#include <time.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
+#define ORANGE_AVOIDER_VERBOSE TRUE
+
+#define PRINT(string,...) fprintf(stderr, "[orange_avoider->%s()] " string,__FUNCTION__ , ##__VA_ARGS__)
+#if ORANGE_AVOIDER_VERBOSE
+#define VERBOSE_PRINT PRINT
+#else
+#define VERBOSE_PRINT(...)
+#endif
+
+#ifndef ORANGE_AVOIDER_LUM_MIN
+#define ORANGE_AVOIDER_LUM_MIN 41
+#endif
+
+#ifndef ORANGE_AVOIDER_LUM_MAX
+#define ORANGE_AVOIDER_LUM_MAX 183
+#endif
+
+#ifndef ORANGE_AVOIDER_CB_MIN
+#define ORANGE_AVOIDER_CB_MIN 53
+#endif
+
+#ifndef ORANGE_AVOIDER_CB_MAX
+#define ORANGE_AVOIDER_CB_MAX 121
+#endif
+
+#ifndef ORANGE_AVOIDER_CR_MIN
+#define ORANGE_AVOIDER_CR_MIN 134
+#endif
+
+#ifndef ORANGE_AVOIDER_CR_MAX
+#define ORANGE_AVOIDER_CR_MAX 249
+#endif
+
+
+uint8_t safeToGoForwards        = false;
+int tresholdColorCount          = 0.05 * 124800; // 520 x 240 = 124.800 total pixels
+float incrementForAvoidance;
+uint16_t trajectoryConfidence   = 1;
+float maxDistance               = 2.25;
+
+
+// initalize state variables
+bool states_upd;
+int32_t hdg_chg;
+float rngsq;
+//struct EnuCoor_i bbp;
+int32_t crs;
+float sog;
+float dx;
+float dy;
+int obs[5];
+int allowupdateheading = 1;
+
+
+/*
+ * Initialisation function, setting the colour filter, random seed and incrementForAvoidance
+ */
+void orange_avoider_init()
+{
+  // Initialise the variables of the colorfilter to accept orange
+  color_lum_min = ORANGE_AVOIDER_LUM_MIN;
+  color_lum_max = ORANGE_AVOIDER_LUM_MAX;
+  color_cb_min  = ORANGE_AVOIDER_CB_MIN;
+  color_cb_max  = ORANGE_AVOIDER_CB_MAX;
+  color_cr_min  = ORANGE_AVOIDER_CR_MIN;
+  color_cr_max  = ORANGE_AVOIDER_CR_MAX;
+  // Initialise random values
+  srand(time(NULL));
+  chooseRandomIncrementAvoidance();
+
+  obs[0] = WP_OBS1;
+  obs[1] = WP_OBS2;
+  obs[2] = WP_OBS3;
+  obs[3] = WP_OBS4;
+  obs[4] = WP_OBS5;
+  VERBOSE_PRINT("Waypoint 1 x: %f, y: %f \n", waypoint_get_x(obs[0]), waypoint_get_y(obs[0]));
+}
+
+void orange_avoider_periodic()
+{  
+  states_upd = false;
+  hdg_chg = 0;
+  struct EnuCoor_i *bbp = stateGetPositionEnu_i(); // Get your current position 
+  sog           = stateGetHorizontalSpeedNorm_f();  
+  
+  for (int i = 0; i<5; i++){
+    dx = waypoint_get_x(obs[i]) - POS_FLOAT_OF_BFP(bbp->x);
+    dy = waypoint_get_y(obs[i]) - POS_FLOAT_OF_BFP(bbp->y);
+    rngsq = dx*dx+dy*dy;
+    //VERBOSE_PRINT("OBS: %d, dx: %f, dy: %f, rngsq: %f \n", i, dx, dy, rngsq);
+    // allowupdateheading is set to false if we are outside of obstacle zone
+    if ((rngsq < (float) 6) && (sog > 0.1) && allowupdateheading){
+      if (states_upd == false){
+        crs           = stateGetHorizontalSpeedDir_i();
+        states_upd     = true;
+      }
+      hdg_chg =+ casper_compt_hdg_chg();
+    }
+  }
+  VERBOSE_PRINT("Heading change: %f degrees \n", 57.3*ANGLE_FLOAT_OF_BFP(hdg_chg));
+  increase_nav_heading(&nav_heading, hdg_chg);
+  return;
+}
+
+int32_t casper_compt_hdg_chg()
+{
+  float dCRSobs;
+  float turnDir;
+  int32_t mbrg = ANGLE_BFP_OF_REAL(atan2f(dx,dy));
+  int32_t vbrg = mbrg-crs;
+  INT32_ANGLE_NORMALIZE(vbrg);
+
+  float VMG = sog * cosf(ANGLE_FLOAT_OF_BFP(vbrg));
+  if(true) { //VMG>0.4*sog) {
+    turnDir = (float) -((vbrg > 0) - (vbrg < 0));
+    dCRSobs =  turnDir*0.025*M_PI/(rngsq);
+  }
+  else {
+    dCRSobs = 0;
+  }
+  VERBOSE_PRINT("VMG: %f >  %f, dCRS = %f = %f*%f/%f \n", VMG, 0.01*sog, dCRSobs, turnDir, 0.025*M_PI, rngsq);
+  
+
+  return ANGLE_BFP_OF_REAL(dCRSobs);
+}
+/*
+ * Function that checks it is safe to move forwards, and then moves a waypoint forward or changes the heading
+ */
+// void orange_avoider_periodic()
+// {
+//   // Check the amount of orange. If this is above a threshold
+//   // you want to turn a certain amount of degrees
+//   safeToGoForwards = color_count < tresholdColorCount;
+//   VERBOSE_PRINT("Color_count: %d  threshold: %d safe: %d \n", color_count, tresholdColorCount, safeToGoForwards);
+//   float moveDistance = fmin(maxDistance, 0.05 * trajectoryConfidence);
+//   if (safeToGoForwards) {
+//     moveWaypointForward(WP_GOAL, moveDistance);
+//     moveWaypointForward(WP_TRAJECTORY, 1.25 * moveDistance);
+//     nav_set_heading_towards_waypoint(WP_GOAL);
+//     chooseRandomIncrementAvoidance();
+//     trajectoryConfidence += 1;
+//   } else {
+//     waypoint_set_here_2d(WP_GOAL);
+//     waypoint_set_here_2d(WP_TRAJECTORY);
+//     increase_nav_heading(&nav_heading, incrementForAvoidance);
+//     if (trajectoryConfidence > 5) {
+//       trajectoryConfidence -= 4;
+//     } else {
+//       trajectoryConfidence = 1;
+//     }
+//   }
+//   return;
+// }
+/*
+ * Increases the NAV heading. Assumes heading is an INT32_ANGLE. It is bound in this function.
+ */
+uint8_t increase_nav_heading(int32_t *heading, float incrementDegrees)
+{
+  struct Int32Eulers *eulerAngles   = stateGetNedToBodyEulers_i();
+  int32_t newHeading = eulerAngles->psi + ANGLE_BFP_OF_REAL(RadOfDeg(incrementDegrees));
+  // Check if your turn made it go out of bounds...
+  INT32_ANGLE_NORMALIZE(newHeading); // HEADING HAS INT32_ANGLE_FRAC....
+  *heading = newHeading;
+  //VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(ANGLE_FLOAT_OF_BFP(*heading)));
+  return false;
+}
+
+/*
+ * Calculates coordinates of a distance of 'distanceMeters' forward w.r.t. current position and heading
+ */
+static uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
+{
+  struct EnuCoor_i *pos             = stateGetPositionEnu_i(); // Get your current position
+  struct Int32Eulers *eulerAngles   = stateGetNedToBodyEulers_i();
+  // Calculate the sine and cosine of the heading the drone is keeping
+  float sin_heading                 = sinf(ANGLE_FLOAT_OF_BFP(eulerAngles->psi));
+  float cos_heading                 = cosf(ANGLE_FLOAT_OF_BFP(eulerAngles->psi));
+  // Now determine where to place the waypoint you want to go to
+  new_coor->x                       = pos->x + POS_BFP_OF_REAL(sin_heading * (distanceMeters));
+  new_coor->y                       = pos->y + POS_BFP_OF_REAL(cos_heading * (distanceMeters));
+  //VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,  
+  //              POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y), POS_FLOAT_OF_BFP(pos->x), POS_FLOAT_OF_BFP(pos->y),
+   //             DegOfRad(ANGLE_FLOAT_OF_BFP(eulerAngles->psi)) );
+  return false;
+}
+
+/*
+ * Sets waypoint 'waypoint' to the coordinates of 'new_coor'
+ */
+uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
+{
+  //VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
+  //              POS_FLOAT_OF_BFP(new_coor->y));
+  waypoint_set_xy_i(waypoint, new_coor->x, new_coor->y);
+  return false;
+}
+
+/*
+ * Calculates coordinates of distance forward and sets waypoint 'waypoint' to those coordinates
+ */
+uint8_t moveWaypointForward(uint8_t waypoint, float distanceMeters)
+{
+  struct EnuCoor_i new_coor;
+  calculateForwards(&new_coor, distanceMeters);
+  moveWaypoint(waypoint, &new_coor);
+  return false;
+}
+
+/*
+ * Sets the variable 'incrementForAvoidance' randomly positive/negative
+ */
+uint8_t chooseRandomIncrementAvoidance()
+{
+  // Randomly choose CW or CCW avoiding direction
+  int r = rand() % 2;
+  if (r == 0) {
+    incrementForAvoidance = 10.0;
+    //VERBOSE_PRINT("Set avoidance increment to: %f\n", incrementForAvoidance);
+  } else {
+    incrementForAvoidance = -10.0;
+    //VERBOSE_PRINT("Set avoidance increment to: %f\n", incrementForAvoidance);
+  }
+  return false;
+}
+
