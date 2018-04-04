@@ -1,13 +1,39 @@
 // Author: Henricus N. Basien
 // Date:Tuesday 03.04.2018
 
-#include "OpticalAvoider.h"
+//****************************************************************************************
+// Imports
+//****************************************************************************************
+
+//-------------------------------------------
+// Debug
+//-------------------------------------------
+
+#define DEBUG
+//#define UsePROFILER
+
+#ifdef DEBUG
+    #define TRACKTIME
+    #define SHOWIMG
+    #define SHOWDIR
+    #define PRINTDEBUG
+    #define FINDMAX
+#else
+    #define TRACKTIME
+#endif
+
+//-------------------------------------------
+// Execution
+//-------------------------------------------
+
+#define UseAbsoluteMax
+#define CropImage
 
 //****************************************************************************************
 // Imports
 //****************************************************************************************
 
-//#define UsePROFILER
+#include "OpticalAvoider.h"
 
 //+++++++++++++++++++++++++++++++++++++++++++
 // External
@@ -60,17 +86,17 @@ using namespace cv;
 // Settings
 //****************************************************************************************
 
-//-------------------------------------------
+//+++++++++++++++++++++++++++++++++++++++++++
 // Image
-//-------------------------------------------
+//+++++++++++++++++++++++++++++++++++++++++++
 
 cv::Size res(90,195);//res(120,260);//res(240,520);//res(520,240);//res(200,150);//res(520,240);//res(150,200); //(200,150);
 
 bool Rotate = false;
 
-//-------------------------------------------
+//+++++++++++++++++++++++++++++++++++++++++++
 // Optical Flow
-//-------------------------------------------
+//+++++++++++++++++++++++++++++++++++++++++++
 
 double pyr_scale  = 0.5;
 int    levels     = 3;
@@ -81,6 +107,18 @@ double poly_sigma = 1.2;
 
 int    flags      = 0; // cv::OPTFLOW_USE_INITIAL_FLOW
 
+//+++++++++++++++++++++++++++++++++++++++++++
+// Control
+//+++++++++++++++++++++++++++++++++++++++++++
+
+#ifdef CropImage
+    float CropTop = 0.2; // [UnitInterval]
+    float CropBot = 0.2; // [UnitInterval]
+#endif
+
+int NrColumns = 9;//5;
+float K = 1.0; // [s]
+
 //****************************************************************************************
 // Detector
 //****************************************************************************************
@@ -90,13 +128,27 @@ int    flags      = 0; // cv::OPTFLOW_USE_INITIAL_FLOW
 //+++++++++++++++++++++++++++++++++++++++++++
 
 Mat frame_new;
-Mat frame_old;
+Mat frame_new_g;
+Mat frame_old_g;
 unsigned long frameNr = 0;
 
 cv::Size org_size;
 
 //--- Time Keeping ---
-unsigned long t_old = 0;
+#ifdef TRACKTIME
+    unsigned long t_old = 0;
+#endif
+
+//--- Optical Flow ---
+cv::Mat diff;
+#ifdef FINDMAX
+    double MaxMean = 0;
+#endif
+
+//--- Optimal Directions ---
+cv::Scalar OptPer = cv::Scalar(0.0,0.0);
+cv::Scalar RecPer = cv::Scalar(0.0,0.0);
+cv::Scalar RefAng = cv::Scalar(0.0,0.0);
 
 //+++++++++++++++++++++++++++++++++++++++++++
 // Detector
@@ -118,102 +170,268 @@ Mat Detector(Mat frame){
     // Prepare Image
     //+++++++++++++++++++++++++++++++++++++++++++
 
-    if (frame_new.size()!=res){ // Check correct Columns & Rows 
-       printf("Converting from (%i,%i) to (%i,%i)\n",frame_new.size().height,frame_new.size().width,res.height,res.width);
-       cv::resize(frame_new,frame_new, res);
-    }
+    //-------------------------------------------
+    // Crop
+    //-------------------------------------------
 
-    //cv::circle(frame, cv::Point(200,100), 10, cv::Scalar(128, 0, 0));
+    #ifdef CropImage
+        int offset_y_top = int(CropTop*frame_new.size().width);
+        int offset_y_bot = int(CropBot*frame_new.size().width);
+
+        cv::Rect roi;
+        roi.x = offset_y_bot;
+        roi.y = 0;
+        roi.width  = frame_new.size().width - (offset_y_bot+offset_y_top);
+        roi.height = frame_new.size().height;
+
+        /* Crop the original image to the defined ROI */
+        //cv::Mat crop = frame_new(roi);
+        frame_new = frame_new(roi);
+    #endif
+
+    //-------------------------------------------
+    // Resize
+    //-------------------------------------------
+
+    if (frame_new.size()!=res){ // Check correct Columns & Rows 
+
+        //--- Resize --
+        #ifdef PRINTDEBUG
+            printf("Converting from (%i,%i) to (%i,%i)\n",frame_new.size().height,frame_new.size().width,res.height,res.width);
+        #endif
+        cv::resize(frame_new,frame_new, res);
+    }
 
     //+++++++++++++++++++++++++++++++++++++++++++
     // Track Time
     //+++++++++++++++++++++++++++++++++++++++++++
     
-    unsigned long t = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    unsigned long dt = t-t_old;
-    t_old = t;
-    float freq = 1000./float(dt);
-    //t = time(NULL);
+    #ifdef TRACKTIME
+        unsigned long t = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        unsigned long dt = t-t_old;
+        t_old = t;
+        float freq = 1000./float(dt);
+        //t = time(NULL);
 
-    printf("DetectorRun #%lu @t=%lu;dt=%lu,freq=%f Hz\n",frameNr,t,dt,freq);
+        printf("DetectorRun #%lu @t=%lu;dt=%lu,freq=%f Hz\n",frameNr,t,dt,freq);
+    #endif
 
     //+++++++++++++++++++++++++++++++++++++++++++
     // Optical Flow
     //+++++++++++++++++++++++++++++++++++++++++++
 
+    cvtColor(frame_new,frame_new_g, CV_BGR2GRAY);
+
     if (frameNr>0){
 
-        Mat frame_new_g;
-        Mat frame_old_g;
-        cvtColor(frame_new,frame_new_g, CV_BGR2GRAY);
-        cvtColor(frame_old,frame_old_g, CV_BGR2GRAY);
-
         Mat flow;
-        printf("Running 'calcOpticalFlowFarneback'\n");
-        printf("Old Size (%i,%i|%i); New Size (%i,%i|%i)\n",frame_old.cols,frame_old.rows,frame_old.channels(),frame_new.cols,frame_new.rows,frame_new.channels());
-        cv::calcOpticalFlowFarneback(frame_old_g, frame_new_g, flow, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags);
+        #ifdef PRINTDEBUG
+            printf("Running 'calcOpticalFlowFarneback'\n");
+            printf("Old grey Size (%i,%i|%i) | New Size (%i,%i|%i)\n",frame_old_g.cols,frame_old_g.rows,frame_old_g.channels(),frame_new.cols,frame_new.rows,frame_new.channels());
+        #endif
+        cv::calcOpticalFlowFarneback(frame_old_g, frame_new_g, flow, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags); // returns matrix with flow in x and y
         
-        if (0){
-            printf("Done Calculating OpticalFlow, showing Results\n");
-            cout << "M = "<< endl << " "  << flow << endl << endl;
-            // for(int i = 0; i < frame.cols; i++){
-            //     for(int j = 0; j < frame.rows; j++){
-            //         double val_x = frame.at<double>(i,j,0); //[frame.cols * j + i];
-            //         double val_y = frame.at<double>(i,j,1); //[frame.cols * j + i + 1];
-            //         printf("%i,%i: %f,%f\n",i,j,val_x,val_y);
-            //     }
-            // }
-        }
+        //-------------------------------------------
+        // Get Magnitude
+        //-------------------------------------------
+
+        Mat flow_split [2];
+        cv::split(flow, flow_split); //splits flow x and y from eachother
+        Mat flow_magnitude;
+        cv::magnitude(flow_split[0],flow_split[1],flow_magnitude);
+
+        #ifdef PRINTDEBUG
+            if (0){
+                printf("Done Calculating OpticalFlow, showing Magnitude\n");
+                cout << "M = "<< endl << " "  << flow_magnitude << endl << endl;
+            }
+        #endif
+
+        //................................
+        // Normalize with dt
+        //................................
+
+        flow_magnitude*=1000.0/float(dt); // [px/s]
+
+        //................................
+        // Normalize with Resolution
+        //................................
+
+        flow_magnitude*=1.0/float(res.height);//width); // [Frame%/s]
 
         //-------------------------------------------
         // Get Mean
         //-------------------------------------------
         
-        cv::Scalar mean = cv::mean(flow);   
+        cv::Scalar mean = cv::mean(flow_magnitude);   
 
-        stringstream mean_ss;
-        mean_ss << "AvgOF:" << " " << mean << endl;
-        cout << mean_ss.str() << endl;
-        //printf("Mean Flow %f",float(mean));
+        #ifdef FINDMAX
+            double Mean = sum(mean)[0];
+            if (Mean>MaxMean){
+                MaxMean = Mean;
+            }
+        #endif
 
-        if (0){
-            double font_size = 0.5; //1.0;//#10.0;
-            cv::putText(frame, mean_ss.str(), cv::Point(10,50), cv::FONT_HERSHEY_COMPLEX_SMALL, font_size, cv::Scalar(0,0,128));
-        }
+        #ifdef PRINTDEBUG
+            stringstream mean_ss;
+            mean_ss << "AvgOF:"  << " " << mean << endl;
+            #ifdef FINDMAX
+                mean_ss << "MaxAvg:" << " " << MaxMean << endl;
+            #endif
+            cout << mean_ss.str() << endl;
+        
+            //printf("Mean Flow %f",float(mean));
+
+            if (0){
+                double font_size = 0.5; //1.0;//#10.0;
+                cv::putText(frame, mean_ss.str(), cv::Point(10,50), cv::FONT_HERSHEY_COMPLEX_SMALL, font_size, cv::Scalar(0,0,128));
+            }
+        #endif
 
         //-------------------------------------------
         // Get Diff
         //-------------------------------------------
         
-        cv::Mat diff;
+        //cv::Mat diff;
+        cv::absdiff(flow_magnitude,mean, diff);
 
-        cv::absdiff(flow,mean, diff);
+        #ifdef PRINTDEBUG
+            printf("#Channels: flow=%i mag=%i diff=%i\n",flow.channels(),flow_magnitude.channels(),diff.channels());
+        #endif
 
-        if (0){
-            cvtColor(diff,frame, CV_GRAY2BGR);
+        //-------------------------------------------
+        // Get Output Image
+        //-------------------------------------------
+
+        if (1){
+
+            #ifdef UseAbsoluteMax
+                double Min = 0;   // [frame/s]
+                double Max = 0.8;//0.6;//1.0; // [frame/s]
+            #else
+                double Min,Max;
+                cv::minMaxLoc(diff, &Min, &Max);
+            #endif
+
+            if (Min!=Max){ 
+                diff -= Min;
+                diff.convertTo(diff,CV_8U,255.0/(Max-Min));
+            }
+
+
+            #ifdef SHOWIMG
+                if (0){
+                    cvtColor(diff,frame, CV_GRAY2BGR);
+                }
+                else{
+                    Mat R = diff;
+                    Mat G = 255-diff;
+                    Mat B;
+                    B = Mat::zeros(diff.size(),CV_8U);
+
+
+                    vector<Mat> channels;
+                    channels.push_back(B);
+                    channels.push_back(G);
+                    channels.push_back(R);
+
+                    Mat BGR;
+                    cv::merge(channels,BGR);
+
+                    cv::addWeighted(BGR,0.5,frame_new,0.5,1.0,frame);
+                    printf("Converted to (%i,%i|%i)\n",frame.size().height,frame.size().width,frame.channels());
+                }
+            #endif
         }     
+    }
 
-        printf("#Channels: flow=%i diff=%i",flow.channels(),diff.channels());
+    //+++++++++++++++++++++++++++++++++++++++++++
+    // Fix Frame Size
+    //+++++++++++++++++++++++++++++++++++++++++++
 
+    if (frame.size()!=org_size){ // Check correct Columns & Rows 
+       printf("Converting from (%i,%i|%i) to (%i,%i)\n",frame.size().height,frame.size().width,frame.channels(),org_size.height,org_size.width);
+       cv::resize(frame,frame, org_size);
+    }
+
+    //+++++++++++++++++++++++++++++++++++++++++++
+    // Control Direction
+    //+++++++++++++++++++++++++++++++++++++++++++
+
+    if (frameNr>0){
+        //-------------------------------------------
+        // Get Colums
+        //-------------------------------------------
+
+        cv::Size ColumnSize(1,NrColumns);
+        Mat Columns;
+        cv::resize(diff,Columns, ColumnSize);
+
+        //-------------------------------------------
+        // Get Direction
+        //-------------------------------------------
+            
+        double minVal,maxVal;
+        int minIdx,maxIdx;
+        cv::minMaxIdx(Columns,&minVal,&maxVal,&minIdx,&maxIdx);
+
+        int Idx = minIdx;
+        OptPer[0] = 0.0;
+        OptPer[1] = (float(Idx)+0.5)/float(NrColumns)-0.5;
+
+        for (int i=0;i<2;i++){
+            float Dif = OptPer[i]-RecPer[i];
+            RecPer[i] +=Dif*float(dt)/1000.0/K;
+        }
+
+        //--- Get Angle ---
+        float MaxAngle = 20;
+        for (int i=0;i<2;i++){
+            RefAng[i] = RecPer[i]*MaxAngle;
+        }
+
+        #ifdef PRINTDEBUG
+            cout << "Recommended dHeading: "<< RefAng << endl;
+        #endif
+
+        //-------------------------------------------
+        // Show Direction
+        //-------------------------------------------
+
+        #ifdef SHOWIMG
+            #ifdef SHOWDIR
+
+                cv::Point OptDir    = cv::Point((OptPer[0]+0.5)*org_size.width,(OptPer[1]+0.5)*org_size.height);
+                cv::Point RecDir    = cv::Point((RecPer[0]+0.5)*org_size.width,(RecPer[1]+0.5)*org_size.height);
+
+                cv::Scalar OptColor = cv::Scalar(128, 128, 0);
+                cv::Scalar RecColor = cv::Scalar(0, 128, 0);
+                int radius = 10;
+                int thickness = 4;
+
+                //--- Draw Arrows ---
+                arrowedLine(frame, OptDir,RecDir, OptColor, thickness);
+
+                //--- Draw Circles ---
+                cv::circle(frame, OptDir, radius, OptColor,thickness);
+                cv::circle(frame, RecDir, radius, RecColor,thickness);
+
+
+            #endif
+        #endif
     }
 
     //+++++++++++++++++++++++++++++++++++++++++++
     // Addendum
     //+++++++++++++++++++++++++++++++++++++++++++
 
+    //--- Store Old Frame --
+    frame_old_g = frame_new_g.clone();
+    frameNr++;
+
     #ifdef UsePROFILER
         CPPP->EndCheckPoints();
     #endif  
-
-    //--- Store Old Frame --
-    frame_old = frame_new;
-    frameNr++;
-
-    if (frame.size()!=org_size){ // Check correct Columns & Rows 
-       printf("Converting from (%i,%i) to (%i,%i)\n",frame.size().height,frame_new.size().width,org_size.height,org_size.width);
-       cv::resize(frame,frame, org_size);
-    }
-    
 
     //--- Return Frame --
     return frame;
@@ -225,7 +443,9 @@ Mat Detector(Mat frame){
 //****************************************************************************************
 
 int RunOpticalAvoider(char *raw_img_data, int width, int height){
-    printf("Running OpticalAvoider (OpenCV)...\n");
+    #ifdef PRINTDEBUG
+        printf("Running OpticalAvoider (OpenCV)...\n");
+    #endif
 
     //+++++++++++++++++++++++++++++++++++++++++++
     // Get Raw Image

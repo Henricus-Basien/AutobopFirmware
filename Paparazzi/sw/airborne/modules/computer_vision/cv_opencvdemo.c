@@ -41,7 +41,7 @@ struct image_t *opencv_func(struct image_t *img);
 struct image_t *opencv_func(struct image_t *img)
 {
 
-  printf("Test...");
+  //printf("Test...");
   if (img->type == IMAGE_YUV422) {
     // Call OpenCV (C++ from paparazzi C function)
     //opencv_example((char *) img->buf, img->w, img->h);
