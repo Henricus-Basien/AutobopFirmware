@@ -12,7 +12,7 @@ extern "C" {
 // Global Variables
 //+++++++++++++++++++++++++++++++++++++++++++
 
-int color_count;
+//int color_count;
 
 extern float MaxAngle;
 extern float RefAng[2];
