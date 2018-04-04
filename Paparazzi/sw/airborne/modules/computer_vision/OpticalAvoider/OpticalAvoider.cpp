@@ -172,7 +172,7 @@ float RefAng[2];
 //+++++++++++++++++++++++++++++++++++++++++++
 // Detector
 //+++++++++++++++++++++++++++++++++++++++++++
-
+Mat Detector(Mat frame);
 Mat Detector(Mat frame){
 
     #ifdef UsePROFILER
@@ -435,7 +435,8 @@ Mat Detector(Mat frame){
         }
 
         #ifdef PRINTDEBUG
-            cout << "Recommended dHeading: "<< RefAng << endl;
+            //cout << "Recommended dHeading: "<< RefAng << endl;
+            printf("Recommended dHeading: [%f, %f]", RefAng[0], RefAng[1]);
         #endif
 
         //-------------------------------------------
