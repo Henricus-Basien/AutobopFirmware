@@ -148,14 +148,14 @@ cv::Mat diff;
 //--- Optimal Directions ---
 cv::Scalar OptPer = cv::Scalar(0.0,0.0);
 cv::Scalar RecPer = cv::Scalar(0.0,0.0);
-cv::Scalar RefAng = cv::Scalar(0.0,0.0);
+
+float MaxAngle = 20;
+float RefAng[2];
 
 //+++++++++++++++++++++++++++++++++++++++++++
 // Detector
 //+++++++++++++++++++++++++++++++++++++++++++
 
-
-Mat Detector(Mat frame);
 Mat Detector(Mat frame){
 
     #ifdef UsePROFILER
@@ -385,7 +385,6 @@ Mat Detector(Mat frame){
         }
 
         //--- Get Angle ---
-        float MaxAngle = 20;
         for (int i=0;i<2;i++){
             RefAng[i] = RecPer[i]*MaxAngle;
         }

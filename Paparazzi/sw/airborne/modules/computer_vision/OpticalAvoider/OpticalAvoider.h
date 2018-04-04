@@ -14,6 +14,13 @@ extern "C" {
 
 int color_count;
 
+extern float MaxAngle;
+extern float RefAng[2];
+
+//+++++++++++++++++++++++++++++++++++++++++++
+// Global Functions
+//+++++++++++++++++++++++++++++++++++++++++++
+
 int RunOpticalAvoider(char *img, int width, int height);
 
 #ifdef __cplusplus
@@ -21,4 +28,3 @@ int RunOpticalAvoider(char *img, int width, int height);
 #endif
 
 #endif
-
