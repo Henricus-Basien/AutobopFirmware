@@ -78,7 +78,7 @@ int obs[5];
 
 float orient = 0.60284; // Cyberzoo is oriented 34.54 deg (0.60284 rad) relative to N
 float wallTreshold = 2.7;
-float k_wall = 0.1;
+float k_wall = 0.15;
 float k_obst = 0*0.075;
 // heading change limit
 float capLimit = (float) M_PI/9;
@@ -91,7 +91,7 @@ float BigEvasiveTurnAmount = 0.0;
 float BigEvasiveTurnAmountToGo = 0.0;
 float BigEvasiveTurnCommand = 0.0;
 
-float k_refang = -0.1/20.;
+float k_refang = -0.1/10.;
 float dHDG_optflow = 0.0;
 
 
@@ -288,7 +288,7 @@ extern bool doingBigEvasiveTurnCheck() {
 		turnDir = -1 * signOfFloat(vbrg_xZoo) * signOfFloat(xZoo);
 
     VERBOSE_PRINT("hdg_xZoo = %f, vbrg_xZoo = %f, v_xZoo = %f \n", DegOfRad(hdg_xZoo), DegOfRad(vbrg_xZoo),v_xZoo);
-		float rng_x = 4.1-fabs(xZoo);
+		float rng_x = 3.5-fabs(xZoo);
 		dCRSx = turnDir*k_wall*M_PI/(rng_x*rng_x)*(fabs(v_xZoo/sog)+bias);
 	  VERBOSE_PRINT("xZoo = %f, yZoo = %f, dCRSx = %f deg: rng_x = %f \n", xZoo, yZoo, 57.3*dCRSx, rng_x);
     noprint = false;
@@ -304,7 +304,7 @@ extern bool doingBigEvasiveTurnCheck() {
       VERBOSE_PRINT("vbrg_yZoo = %f, v_yZoo = %f \n", DegOfRad(vbrg_yZoo),v_yZoo);
 		}
 
-		float rng_y = 3.7-fabs(yZoo);
+		float rng_y = 3.2-fabs(yZoo);
 		dCRSy = turnDir*k_wall*M_PI/(rng_y*rng_y)*(fabs(v_yZoo/sog)+bias);
     VERBOSE_PRINT("xZoo = %f, yZoo = %f, dCRSy = %f deg; rng_y = %f \n", xZoo, yZoo, 57.3*dCRSy, rng_y);
     noprint = false;

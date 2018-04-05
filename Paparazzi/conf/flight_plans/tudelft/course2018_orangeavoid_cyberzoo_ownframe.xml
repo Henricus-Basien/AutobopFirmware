@@ -164,7 +164,7 @@
     </block>
     <block name="StayGoal">
       <stay wp="GOAL"/>
-      <!--exception cond="!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))" deroute="PrepareObstacleRun"/-->
+      <exception cond="!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))" deroute="PrepareObstacleRun" />
     </block>
     <block name="PrepareObstacleRun">
       <while cond="!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))">
